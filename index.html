@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQHS Smart Queue Health System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231D9E75' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='DM Serif Display, serif' letter-spacing='2'%3ES%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+ 
+<!-- TOAST -->
+<div class="toast" id="toast"><span class="toast-icon">✓</span><span id="toast-msg">Done</span></div>
+ 
+<!-- ADD PATIENT MODAL -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <h2 class="modal-title">Register New Patient</h2>
+    <div class="two-col">
+      <div class="form-group"><label>First Name</label><input type="text" id="f-fname" placeholder="MUSONERA"></div>
+      <div class="form-group"><label>Last Name</label><input type="text" id="f-lname" placeholder="IRAHARI Junior"></div>
+    </div>
+    <div class="form-group"><label>Phone Number</label><input type="tel" id="f-phone" placeholder="+250 7XX XXX XXX"></div>
+    <div class="two-col">
+      <div class="form-group"><label>Department</label>
+        <select id="f-dept">
+          <option>General Consultation</option>
+          <option>Maternity & Pediatrics</option>
+          <option>Lab & Diagnostics</option>
+          <option>Pharmacy</option>
+          <option>Emergency</option>
+          <option>Dental</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Priority</label>
+        <select id="f-priority">
+          <option value="normal">Normal</option>
+          <option value="priority">Priority (Elderly/Disabled)</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label>Notes (Optional)</label><textarea id="f-notes" rows="2" placeholder="Any relevant info..."></textarea></div>
+    <div class="flex-gap" style="justify-content:flex-end;margin-top:.5rem;">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="registerPatient()">→ Issue Queue Number</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- NAV -->
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="logo-mark">S</div>
+    <div>
+      <span class="brand-text">SQHS</span>
+      <span class="brand-sub">Smart Queue Health System</span>
+    </div>
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">📊 Dashboard</button>
+    <button class="nav-tab" onclick="showPage('queue')">📋 Queue</button>
+    <button class="nav-tab" onclick="showPage('kiosk')">🖥️ Kiosk</button>
+    <button class="nav-tab" onclick="showPage('display')">📺 Display Board</button>
+    <button class="nav-tab" onclick="showPage('analytics')">📈 Analytics</button>
+    <button class="nav-tab" onclick="showPage('sms')">💬 SMS / Notify</button>
+    <button class="nav-tab" onclick="showPage('settings')">⚙️ Settings</button>
+  </div>
+  <div class="nav-status">
+    <div class="dot-live"></div><span>Live</span>
+  </div>
+</nav>
+ 
+<!-- ═══════════════════════════════════════════
+     DASHBOARD
+════════════════════════════════════════════ -->
+<div class="page active" id="page-dashboard">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
+    <div>
+      <h2 style="font-size:1.6rem;">Good morning 👋</h2>
+      <p style="color:var(--text-muted);font-size:14px;" id="dash-date">Wednesday, 28 May 2026 — Muhima Health Center</p>
+    </div>
+    <button class="btn btn-primary" onclick="openModal()">+ Register Patient</button>
+  </div>
+ 
+  <div class="stat-grid">
+    <div class="card">
+      <div class="card-title">Waiting Now</div>
+      <div class="card-value" id="stat-waiting">—</div>
+      <div class="card-sub">in queue</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Served Today</div>
+      <div class="card-value" id="stat-served">—</div>
+      <div class="card-sub">patients</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Avg Wait Time</div>
+      <div class="card-value" id="stat-avg">—</div>
+      <div class="card-sub">minutes</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Emergencies</div>
+      <div class="card-value" id="stat-emer" style="color:var(--red-400)">—</div>
+      <div class="card-sub">today</div>
+    </div>
+  </div>
+ 
+  <div class="two-col" style="margin-bottom:1.25rem;">
+    <div class="card">
+      <div class="flex-between">
+        <h3 class="section-title" style="margin-bottom:0">Now Serving</h3>
+        <button class="btn btn-sm btn-outline" onclick="callNext()">Call Next →</button>
+      </div>
+      <div style="margin-top:1rem;" id="now-serving-block">
+        <!-- JS fills this -->
+      </div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">Dept Workload</h3>
+      <div id="dept-bars"><!-- JS fills --></div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <div class="flex-between">
+      <h3 class="section-title" style="margin-bottom:0">Recent Registrations</h3>
+      <button class="btn btn-sm btn-outline" onclick="showPage('queue')">View all</button>
+    </div>
+    <div style="margin-top:1rem;overflow-x:auto;">
+      <table class="queue-table" id="dash-recent-table">
+        <thead>
+          <tr><th>#</th><th>Patient</th><th>Department</th><th>Priority</th><th>Wait</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody id="dash-tbody"><!-- JS fills --></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     QUEUE MANAGEMENT
+════════════════════════════════════════════ -->
+<div class="page" id="page-queue">
+  <div class="flex-between" style="margin-bottom:1.5rem;flex-wrap:wrap;gap:.75rem;">
+    <div>
+      <h2 class="section-title" style="margin-bottom:0">Queue Management</h2>
+      <p class="section-sub" style="margin:4px 0 0;">All patients currently in the system</p>
+    </div>
+    <div class="flex-gap">
+      <select id="filter-dept" onchange="renderQueue()" style="width:auto;padding:8px 32px 8px 10px;font-size:13px;">
+        <option value="">All Departments</option>
+        <option>General Consultation</option>
+        <option>Maternity & Pediatrics</option>
+        <option>Lab & Diagnostics</option>
+        <option>Pharmacy</option>
+        <option>Emergency</option>
+        <option>Dental</option>
+      </select>
+      <select id="filter-status" onchange="renderQueue()" style="width:auto;padding:8px 32px 8px 10px;font-size:13px;">
+        <option value="">All Status</option>
+        <option value="waiting">Waiting</option>
+        <option value="in-progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+      <button class="btn btn-primary" onclick="openModal()">+ Add Patient</button>
+    </div>
+  </div>
+  <div class="card" style="overflow-x:auto;">
+    <table class="queue-table" id="full-queue-table">
+      <thead>
+        <tr><th>#</th><th>Ticket</th><th>Patient</th><th>Phone</th><th>Department</th><th>Priority</th><th>Registered</th><th>Wait</th><th>Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody id="queue-tbody"><!-- JS fills --></tbody>
+    </table>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     KIOSK
+════════════════════════════════════════════ -->
+<div class="page" id="page-kiosk">
+  <div class="kiosk-wrapper">
+    <!-- Step 0: Welcome -->
+    <div id="kiosk-step-0">
+      <div class="kiosk-header">
+        <div style="font-size:3rem;margin-bottom:1rem;">🏥</div>
+        <h1>Welcome</h1>
+        <p>Self-registration kiosk — Muhima Health Center</p>
+      </div>
+      <div class="step-indicator">
+        <div class="step active"></div><div class="step"></div><div class="step"></div>
+      </div>
+      <p style="color:var(--text-secondary);margin-bottom:1.5rem;font-size:14px;">Select your department to get a queue number</p>
+      <div class="dept-grid" id="kiosk-dept-grid"><!-- JS fills --></div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;justify-content:center;" onclick="kioskStep1()">Continue →</button>
+    </div>
+ 
+    <!-- Step 1: Enter Info -->
+    <div id="kiosk-step-1" style="display:none;">
+      <div class="kiosk-header">
+        <h1>Your Details</h1>
+        <p>Enter your phone number to receive SMS updates</p>
+      </div>
+      <div class="step-indicator">
+        <div class="step done"></div><div class="step active"></div><div class="step"></div>
+      </div>
+      <div class="card" style="text-align:left;margin-bottom:1rem;">
+        <div class="form-group"><label>Full Name</label><input type="text" id="k-name" placeholder="Your full name"></div>
+        <div class="form-group"><label>Phone Number (for SMS)</label><input type="tel" id="k-phone" placeholder="+250 7XX XXX XXX"></div>
+        <div class="form-group">
+          <label>Are you?</label>
+          <select id="k-priority">
+            <option value="normal">A regular patient</option>
+            <option value="priority">Elderly / Disabled / Pregnant</option>
+            <option value="emergency">Experiencing an Emergency</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;justify-content:center;" onclick="kioskStep2()">Get My Number →</button>
+      <button class="btn btn-outline" style="width:100%;padding:12px;font-size:14px;justify-content:center;margin-top:.5rem;" onclick="kioskBack()">← Back</button>
+    </div>
+ 
+    <!-- Step 2: Ticket -->
+    <div id="kiosk-step-2" style="display:none;">
+      <div class="step-indicator">
+        <div class="step done"></div><div class="step done"></div><div class="step active"></div>
+      </div>
+      <div class="ticket-display" id="kiosk-ticket">
+        <div class="t-label">Your queue number</div>
+        <div class="t-num" id="k-ticket-num">—</div>
+        <div class="t-dept" id="k-ticket-dept">General Consultation</div>
+        <div class="t-est" id="k-ticket-est">Estimated wait: ~12 min</div>
+      </div>
+      <div class="sms-preview" id="k-sms-preview">
+        📱 SMS sent to your phone:<br>
+        <strong>SQHS:</strong> Your queue no. is <strong id="k-sms-num">—</strong> for General Consultation.<br>
+        Est. wait: ~12 min. We'll notify you when it's your turn.
+      </div>
+      <button class="btn btn-outline" style="width:100%;padding:12px;font-size:14px;justify-content:center;margin-top:1rem;" onclick="kioskReset()">← Register Another Patient</button>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     DISPLAY BOARD
+════════════════════════════════════════════ -->
+<div class="page" id="page-display">
+  <div style="margin-bottom:1rem;">
+    <h2 class="section-title">Live Display Board</h2>
+    <p class="section-sub">As shown on the waiting room screen</p>
+  </div>
+  <div class="board-wrapper" id="display-board">
+    <div class="board-header">
+      <div class="board-title">🏥 Muhima Health Center — Queue Status</div>
+      <div class="board-time" id="board-clock">—</div>
+    </div>
+    <div class="board-grid" id="board-cells"><!-- JS fills --></div>
+    <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid rgba(255,255,255,.1);display:flex;gap:1.5rem;">
+      <span style="color:rgba(255,255,255,.4);font-size:12px;">🟢 Active &nbsp; 🔴 Emergency &nbsp; ⬜ Waiting</span>
+      <span style="color:rgba(255,255,255,.3);font-size:12px;margin-left:auto;">Board refreshes every 30s</span>
+    </div>
+  </div>
+  <div style="margin-top:1rem;text-align:right;">
+    <button class="btn btn-outline btn-sm" onclick="renderBoard()">↻ Refresh Board</button>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     ANALYTICS
+════════════════════════════════════════════ -->
+<div class="page" id="page-analytics">
+  <h2 class="section-title">Analytics</h2>
+  <p class="section-sub">Daily overview and trends</p>
+ 
+  <div class="stat-grid" style="margin-bottom:1.5rem;">
+    <div class="card">
+      <div class="card-title">Avg Service Time</div>
+      <div class="card-value">8.4<span style="font-size:1.1rem;color:var(--text-muted)"> min</span></div>
+      <div class="card-sub">↓ 2.1 min vs yesterday</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Peak Hour</div>
+      <div class="card-value">9–11<span style="font-size:1.1rem;color:var(--text-muted)"> AM</span></div>
+      <div class="card-sub">Most patients arrive</div>
+    </div>
+    <div class="card">
+      <div class="card-title">No-shows</div>
+      <div class="card-value" style="color:var(--amber-400)">4</div>
+      <div class="card-sub">missed calls today</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Throughput</div>
+      <div class="card-value">7.2<span style="font-size:1.1rem;color:var(--text-muted)">/hr</span></div>
+      <div class="card-sub">patients per hour</div>
+    </div>
+  </div>
+ 
+  <div class="two-col" style="margin-bottom:1.25rem;">
+    <div class="card">
+      <h3 class="section-title">Hourly Arrivals</h3>
+      <div class="chart-bar-wrap" id="hourly-chart"><!-- JS --></div>
+    </div>
+    <div class="card">
+      <h3 class="section-title">By Department</h3>
+      <div id="dept-stat-list"><!-- JS --></div>
+    </div>
+  </div>
+ 
+  <div class="card">
+    <h3 class="section-title">Weekly Trend</h3>
+    <div class="chart-bar-wrap" id="weekly-chart"><!-- JS --></div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     SMS NOTIFICATIONS
+════════════════════════════════════════════ -->
+<div class="page" id="page-sms">
+  <h2 class="section-title">SMS Notifications</h2>
+  <p class="section-sub">Send manual messages or view automated SMS log</p>
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">Send Manual SMS</h3>
+        <div class="form-group">
+          <label>Recipient</label>
+          <select id="sms-to">
+            <option value="">— Select patient —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Message Template</label>
+          <select id="sms-template" onchange="fillTemplate()">
+            <option value="">Custom message</option>
+            <option value="ready">Your turn — please come to reception now.</option>
+            <option value="wait5">You have ~5 minutes. Please be ready.</option>
+            <option value="moved">Your appointment has been rescheduled.</option>
+            <option value="skip">You were skipped. Please return to reception.</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <textarea id="sms-body" rows="3" placeholder="Type your message...">Your queue number is ready. Please proceed to the reception desk.</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="sendSms()" style="width:100%;justify-content:center;">📤 Send SMS</button>
+      </div>
+      <div class="card">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">Broadcast</h3>
+        <div class="form-group"><textarea rows="2" placeholder="Send to all waiting patients..." id="broadcast-msg"></textarea></div>
+        <button class="btn btn-amber" onclick="sendBroadcast()" style="width:100%;justify-content:center;">📢 Broadcast to All Waiting</button>
+      </div>
+    </div>
+    <div class="card" style="overflow-y:auto;max-height:480px;">
+      <h3 style="font-size:1rem;margin-bottom:1rem;">SMS Log</h3>
+      <div id="sms-log"><!-- JS fills --></div>
+    </div>
+  </div>
+</div>
+ 
+<!-- ═══════════════════════════════════════════
+     SETTINGS
+════════════════════════════════════════════ -->
+<div class="page" id="page-settings">
+  <h2 class="section-title">Settings</h2>
+  <p class="section-sub">Configure the system for your health center</p>
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">Health Center Info</h3>
+        <div class="form-group"><label>Center Name</label><input type="text" value="Muhima Health Center"></div>
+        <div class="form-group"><label>Location / District</label><input type="text" value="Nyarugenge, Kigali"></div>
+        <div class="form-group"><label>Contact Phone</label><input type="tel" value="+250 788 000 111"></div>
+        <button class="btn btn-primary btn-sm" onclick="showToast('Settings saved ✓')">Save Changes</button>
+      </div>
+      <div class="card">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">Queue Rules</h3>
+        <div class="form-group"><label>Emergency Auto-Prioritize</label>
+          <select><option>Yes — move to top of queue</option><option>No — manual override only</option></select>
+        </div>
+        <div class="form-group"><label>Max Calls Before Skip</label>
+          <input type="number" value="3" style="width:80px;">
+        </div>
+        <div class="form-group"><label>SMS Provider</label>
+          <select><option>MTN Rwanda</option><option>Airtel Rwanda</option><option>Custom Gateway</option></select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="showToast('Rules updated ✓')">Save Rules</button>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:1.25rem;">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">Departments</h3>
+        <div id="dept-settings-list"><!-- JS --></div>
+        <button class="btn btn-outline btn-sm" style="margin-top:.75rem;" onclick="showToast('Department saved ✓')">+ Add Department</button>
+      </div>
+      <div class="card">
+        <h3 style="font-size:1rem;margin-bottom:1rem;">About SQHS</h3>
+        <div style="font-size:13px;color:var(--text-secondary);line-height:1.8;">
+          <p><strong>Version:</strong> 1.0.0</p>
+          <p><strong>Designed for:</strong> Rwandan Health Centers</p>
+          <p><strong>Languages:</strong> English / Kinyarwanda</p>
+          <p><strong>Team:</strong> MANIRAGUHA Emmanuel, AGASARO Queen, NSHUTI Emmanuel, NGANJI Ethan</p>
+          <p style="margin-top:.75rem;color:var(--text-muted);">Reducing patient wait times. Restoring dignity to clinic visits.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+ 
+<script src="script.js"></script>
+</body>
+</html>
