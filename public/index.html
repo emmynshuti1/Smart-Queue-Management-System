@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQHS — Smart Queue Health System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231D9E75' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='Georgia, serif'%3ES%3C/text%3E%3C/svg%3E">
+</head>
+<body>
+
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-icon" id="toast-icon">✓</span><span id="toast-msg"></span></div>
+
+<!-- ═══════════ LOGIN ═══════════ -->
+<section class="login-screen" id="login-screen" hidden>
+  <form class="login-card" id="login-form" autocomplete="on">
+    <div class="logo-mark logo-lg">S</div>
+    <h1>SQHS</h1>
+    <p class="muted" id="login-facility">Smart Queue Health System — staff sign in</p>
+    <div class="form-group"><label for="login-user">Username</label><input id="login-user" name="username" autocomplete="username" required></div>
+    <div class="form-group"><label for="login-pass">Password</label><input id="login-pass" name="password" type="password" autocomplete="current-password" required></div>
+    <p class="form-error" id="login-error" hidden></p>
+    <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    <div class="login-links">
+      <a href="/kiosk" target="_blank" rel="noopener">Open patient kiosk ↗</a>
+      <a href="/display" target="_blank" rel="noopener">Open display board ↗</a>
+    </div>
+  </form>
+</section>
+
+<!-- ═══════════ APP ═══════════ -->
+<div id="app" hidden>
+<nav class="topnav">
+  <a class="nav-brand" href="#dashboard" data-page="dashboard">
+    <div class="logo-mark">S</div>
+    <div>
+      <span class="brand-text">SQHS</span>
+      <span class="brand-sub" id="brand-facility">Smart Queue Health System</span>
+    </div>
+  </a>
+  <div class="nav-tabs" role="tablist">
+    <button class="nav-tab" data-page="dashboard">📊 Dashboard</button>
+    <button class="nav-tab" data-page="queue">📋 Queue</button>
+    <button class="nav-tab" data-page="kiosk">🖥️ Kiosk</button>
+    <button class="nav-tab" data-page="display">📺 Display Board</button>
+    <button class="nav-tab" data-page="analytics" data-perm="analytics:view">📈 Analytics</button>
+    <button class="nav-tab" data-page="sms" data-perm="notify:send">💬 SMS / Notify</button>
+    <button class="nav-tab" data-page="settings">⚙️ Settings</button>
+  </div>
+  <div class="nav-right">
+    <div class="nav-status" id="live-status" title="Real-time connection"><div class="dot-live"></div><span>Connecting…</span></div>
+    <div class="user-chip" title="Signed in">
+      <div class="avatar avatar-sm" id="user-avatar">—</div>
+      <div class="user-meta"><span id="user-name">—</span><span class="user-role" id="user-role">—</span></div>
+    </div>
+    <button class="btn btn-sm btn-ghost" data-action="logout">Sign out</button>
+  </div>
+</nav>
+
+<main>
+<!-- ═══════════ DASHBOARD ═══════════ -->
+<section class="page" id="page-dashboard">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title" id="dash-greeting">Welcome</h2>
+      <p class="page-sub" id="dash-date">—</p>
+    </div>
+    <div class="flex-gap">
+      <span class="updated-at" id="dash-updated"></span>
+      <button class="btn btn-primary" data-action="open-register" data-perm="queue:register">+ Register Patient</button>
+    </div>
+  </header>
+
+  <div id="dash-alerts"></div>
+
+  <div class="stat-grid" id="dash-stats">
+    <div class="card stat"><div class="card-title">Waiting now</div><div class="card-value" id="stat-waiting">—</div><div class="card-sub" id="stat-waiting-sub">in queue</div></div>
+    <div class="card stat"><div class="card-title">Being served</div><div class="card-value" id="stat-serving">—</div><div class="card-sub">at counters</div></div>
+    <div class="card stat"><div class="card-title">Served today</div><div class="card-value" id="stat-served">—</div><div class="card-sub" id="stat-served-sub">patients</div></div>
+    <div class="card stat"><div class="card-title">Avg wait today</div><div class="card-value" id="stat-avg">—</div><div class="card-sub" id="stat-avg-sub">arrival → first call</div></div>
+    <div class="card stat stat-emergency"><div class="card-title">Emergencies</div><div class="card-value" id="stat-emer">—</div><div class="card-sub" id="stat-emer-sub">today</div></div>
+  </div>
+
+  <div class="grid-dash">
+    <div class="card">
+      <div class="card-head">
+        <h3 class="section-title">Now serving</h3>
+        <button class="btn btn-sm btn-outline" data-page="queue" data-perm="queue:serve">Open counter console →</button>
+      </div>
+      <div id="now-serving"></div>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h3 class="section-title">Department workload</h3>
+        <span class="hint">waiting · open counters · est. wait for a new arrival</span>
+      </div>
+      <div id="dept-workload"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head">
+      <h3 class="section-title">Recent registrations</h3>
+      <button class="btn btn-sm btn-outline" data-page="queue">View full queue</button>
+    </div>
+    <div class="table-wrap">
+      <table class="queue-table">
+        <thead><tr><th>Ticket</th><th>Patient</th><th>Department</th><th>Priority</th><th>Wait</th><th>Status</th></tr></thead>
+        <tbody id="dash-recent"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ QUEUE ═══════════ -->
+<section class="page" id="page-queue">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">Queue management</h2>
+      <p class="page-sub">Today's tickets. Ordering follows the configured priority rules.</p>
+    </div>
+    <button class="btn btn-primary" data-action="open-register" data-perm="queue:register">+ Register Patient</button>
+  </header>
+
+  <div class="card console" id="counter-console" data-perm="queue:serve">
+    <div class="console-head">
+      <div>
+        <div class="card-title">My counter</div>
+        <select id="console-counter" aria-label="Counter you are working at"></select>
+      </div>
+      <button class="btn btn-primary btn-lg" data-action="call-next" id="btn-call-next">📣 Call next patient</button>
+    </div>
+    <div id="console-current"></div>
+  </div>
+
+  <div class="toolbar">
+    <input type="search" id="filter-q" placeholder="Search ticket or name…" aria-label="Search">
+    <select id="filter-dept" aria-label="Department"><option value="">All departments</option></select>
+    <select id="filter-status" aria-label="Status">
+      <option value="active">Active (waiting / called / in service)</option>
+      <option value="">All statuses</option>
+      <option value="waiting">Waiting</option>
+      <option value="called">Called</option>
+      <option value="in-progress">In service</option>
+      <option value="done">Served</option>
+      <option value="no-show">Absent</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+    <span class="hint" id="queue-count"></span>
+  </div>
+
+  <div class="card card-flush">
+    <div class="table-wrap">
+      <table class="queue-table">
+        <thead><tr><th>Pos.</th><th>Ticket</th><th>Patient</th><th>Department</th><th>Priority</th><th>Registered</th><th>Wait</th><th>Est.</th><th>Status</th><th class="th-actions">Actions</th></tr></thead>
+        <tbody id="queue-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ KIOSK (preview) ═══════════ -->
+<section class="page" id="page-kiosk">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">Self-service kiosk</h2>
+      <p class="page-sub">Run this on the touchscreen at the entrance. It needs no staff login and never shows other patients' details.</p>
+    </div>
+    <a class="btn btn-primary" href="/kiosk" target="_blank" rel="noopener">Open full-screen kiosk ↗</a>
+  </header>
+  <div class="frame-wrap"><iframe title="Kiosk preview" data-src="/kiosk" class="preview-frame"></iframe></div>
+</section>
+
+<!-- ═══════════ DISPLAY (preview) ═══════════ -->
+<section class="page" id="page-display">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">Waiting-room display board</h2>
+      <p class="page-sub">Shows ticket numbers and counters only — no names or health information. Updates instantly; audio announcements can be enabled on the screen.</p>
+    </div>
+    <a class="btn btn-primary" href="/display" target="_blank" rel="noopener">Open full-screen board ↗</a>
+  </header>
+  <div class="frame-wrap frame-dark"><iframe title="Display board preview" data-src="/display" class="preview-frame"></iframe></div>
+</section>
+
+<!-- ═══════════ ANALYTICS ═══════════ -->
+<section class="page" id="page-analytics">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">Analytics</h2>
+      <p class="page-sub" id="an-range-label">Computed from ticket records</p>
+    </div>
+    <a class="btn btn-outline" id="an-export" href="#" data-action="export-csv">⬇ Export CSV (de-identified)</a>
+  </header>
+  <div class="toolbar">
+    <div class="segmented" id="an-presets">
+      <button data-range="0" class="active">Today</button>
+      <button data-range="6">7 days</button>
+      <button data-range="29">30 days</button>
+    </div>
+    <label class="inline-label">From <input type="date" id="an-from"></label>
+    <label class="inline-label">To <input type="date" id="an-to"></label>
+    <select id="an-dept" aria-label="Department"><option value="">All departments</option></select>
+  </div>
+
+  <div class="stat-grid" id="an-stats"></div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-head"><h3 class="section-title">Arrivals by hour</h3><span class="hint" id="an-peak"></span></div>
+      <div class="chart" id="an-hourly"></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><h3 class="section-title">Daily volume</h3><span class="hint">tickets registered per day</span></div>
+      <div class="chart" id="an-daily"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-head"><h3 class="section-title">Department performance</h3></div>
+    <div class="table-wrap">
+      <table class="queue-table">
+        <thead><tr><th>Department</th><th class="num">Tickets</th><th class="num">Served</th><th class="num">Absent</th><th class="num">Cancelled</th><th class="num">Avg wait</th><th class="num">Median</th><th class="num">90th pct.</th><th class="num">Avg service</th><th class="num">Absent rate</th></tr></thead>
+        <tbody id="an-dept-table"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SMS ═══════════ -->
+<section class="page" id="page-sms">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">SMS notifications</h2>
+      <p class="page-sub">Automatic messages on registration, when called, and when a patient is nearly up.</p>
+    </div>
+  </header>
+  <div id="sms-provider"></div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <h3 class="section-title">Send a message</h3>
+        <div class="form-group"><label for="sms-to">Recipient (active ticket with phone)</label><select id="sms-to"></select></div>
+        <div class="form-group"><label for="sms-template">Template</label>
+          <select id="sms-template">
+            <option value="">Custom message</option>
+            <option>It is your turn — please come to reception now.</option>
+            <option>You have about 5 minutes. Please be ready.</option>
+            <option>We are experiencing delays. Thank you for your patience.</option>
+            <option>We could not find you when called. Please return to reception.</option>
+          </select>
+        </div>
+        <div class="form-group"><label for="sms-body">Message <span class="hint" id="sms-count">0/480</span></label><textarea id="sms-body" rows="3" maxlength="480" placeholder="Avoid including diagnoses or other health details."></textarea></div>
+        <button class="btn btn-primary btn-block" data-action="send-sms">📤 Send SMS</button>
+      </div>
+      <div class="card">
+        <h3 class="section-title">Broadcast to waiting patients</h3>
+        <div class="form-group"><label for="broadcast-dept">Department</label><select id="broadcast-dept"><option value="">All departments</option></select></div>
+        <div class="form-group"><textarea rows="2" maxlength="480" id="broadcast-msg" placeholder="e.g. The doctor is delayed by about 20 minutes."></textarea></div>
+        <button class="btn btn-amber btn-block" data-action="broadcast">📢 Broadcast</button>
+      </div>
+    </div>
+    <div class="card card-scroll">
+      <div class="card-head"><h3 class="section-title">Message log</h3><button class="btn btn-sm btn-ghost" data-action="refresh-sms">↻ Refresh</button></div>
+      <div id="sms-log"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SETTINGS ═══════════ -->
+<section class="page" id="page-settings">
+  <header class="page-head">
+    <div>
+      <h2 class="page-title">Settings</h2>
+      <p class="page-sub" id="settings-sub">Configure the system for your health center</p>
+    </div>
+  </header>
+  <div class="grid-2">
+    <div>
+      <form class="card" id="form-facility" data-perm="admin:manage">
+        <h3 class="section-title">Health center</h3>
+        <div class="form-group"><label>Center name</label><input name="facility_name" maxlength="120"></div>
+        <div class="form-group"><label>Location / district</label><input name="facility_location" maxlength="120"></div>
+        <div class="two-col">
+          <div class="form-group"><label>Contact phone</label><input name="facility_phone" maxlength="40"></div>
+          <div class="form-group"><label>Time zone</label><input name="timezone" maxlength="64" placeholder="Africa/Kigali"></div>
+        </div>
+        <button class="btn btn-primary btn-sm" type="submit">Save changes</button>
+      </form>
+
+      <form class="card" id="form-rules" data-perm="admin:manage">
+        <h3 class="section-title">Queue rules</h3>
+        <div class="form-group"><label>Emergency handling</label>
+          <select name="emergency_mode">
+            <option value="auto_top">Verified emergencies are called first by “Call next”</option>
+            <option value="manual">Never auto-call emergencies — clinicians call them explicitly</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" name="kiosk_emergency_requires_triage"> Self-declared kiosk emergencies require staff triage before jumping the queue</label>
+        <div class="two-col">
+          <div class="form-group"><label>Fairness boost (min)</label><input type="number" name="fairness_boost_minutes" min="0" max="600"><span class="hint">Normal patients waiting longer than this rank with priority patients. 0 = off.</span></div>
+          <div class="form-group"><label>Delay alert (min)</label><input type="number" name="delay_alert_minutes" min="5" max="600"><span class="hint">Flag patients waiting longer than this.</span></div>
+        </div>
+        <div class="two-col">
+          <div class="form-group"><label>Max calls before absent</label><input type="number" name="max_recalls" min="1" max="10"></div>
+          <div class="form-group"><label>Upcoming tickets on board</label><input type="number" name="display_upcoming_count" min="0" max="10"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="kiosk_enabled"> Kiosk self-registration enabled</label>
+        <label class="check"><input type="checkbox" name="kiosk_require_phone"> Kiosk requires a phone number</label>
+        <label class="check"><input type="checkbox" name="display_audio"> Audio announcements on display board</label>
+        <button class="btn btn-primary btn-sm" type="submit">Save rules</button>
+      </form>
+
+      <form class="card" id="form-notify" data-perm="admin:manage">
+        <h3 class="section-title">Notifications</h3>
+        <div id="settings-sms-status"></div>
+        <label class="check"><input type="checkbox" name="sms_on_register"> Text the ticket number on registration</label>
+        <label class="check"><input type="checkbox" name="sms_on_call"> Text the patient when called</label>
+        <div class="form-group"><label>“Almost your turn” at position</label><input type="number" name="sms_soon_positions" min="0" max="20"><span class="hint">Text patients when they reach this position (0 = off).</span></div>
+        <button class="btn btn-primary btn-sm" type="submit">Save notification settings</button>
+      </form>
+
+      <form class="card" id="form-password">
+        <h3 class="section-title">My account</h3>
+        <div class="form-group"><label>Current password</label><input type="password" name="current_password" autocomplete="current-password" required></div>
+        <div class="form-group"><label>New password (min 8 characters)</label><input type="password" name="new_password" autocomplete="new-password" minlength="8" required></div>
+        <button class="btn btn-outline btn-sm" type="submit">Change password</button>
+      </form>
+    </div>
+
+    <div>
+      <div class="card" data-perm="admin:manage">
+        <div class="card-head"><h3 class="section-title">Departments</h3><button class="btn btn-sm btn-outline" data-action="new-dept">+ Add department</button></div>
+        <div id="dept-settings"></div>
+      </div>
+      <div class="card" data-perm="admin:manage">
+        <div class="card-head"><h3 class="section-title">Service counters</h3><button class="btn btn-sm btn-outline" data-action="new-counter">+ Add counter</button></div>
+        <div id="counter-settings"></div>
+      </div>
+      <div class="card" data-perm="admin:manage">
+        <div class="card-head"><h3 class="section-title">Staff accounts</h3><button class="btn btn-sm btn-outline" data-action="new-user">+ Add staff</button></div>
+        <div id="user-settings"></div>
+      </div>
+      <div class="card">
+        <h3 class="section-title">About SQHS</h3>
+        <div class="about">
+          <p><strong>Version:</strong> 2.0.0</p>
+          <p><strong>Designed for:</strong> Rwandan Health Centers</p>
+          <p><strong>Team:</strong> MANIRAGUHA Emmanuel, AGASARO Queen, NSHUTI Emmanuel, NGANJI Ethan</p>
+          <p class="muted">Reducing patient wait times. Restoring dignity to clinic visits.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+</div>
+
+<!-- ═══════════ MODALS ═══════════ -->
+<div class="modal-overlay" id="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 class="modal-title" id="modal-title"></h2>
+      <button class="btn-icon" data-action="close-modal" aria-label="Close">✕</button>
+    </div>
+    <div id="modal-body"></div>
+  </div>
+</div>
+
+<template id="tpl-register">
+  <form id="form-register" novalidate>
+    <div class="two-col">
+      <div class="form-group"><label for="f-fname">First name *</label><input id="f-fname" name="first_name" maxlength="100" required></div>
+      <div class="form-group"><label for="f-lname">Last name *</label><input id="f-lname" name="last_name" maxlength="100" required></div>
+    </div>
+    <div class="form-group"><label for="f-phone">Phone number <span class="hint">optional — for SMS updates</span></label><input type="tel" id="f-phone" name="phone" placeholder="07XX XXX XXX"></div>
+    <div class="two-col">
+      <div class="form-group"><label for="f-dept">Department *</label><select id="f-dept" name="department_id" required></select></div>
+      <div class="form-group"><label for="f-priority">Priority</label>
+        <select id="f-priority" name="priority">
+          <option value="normal">Normal</option>
+          <option value="priority">Priority (elderly / disabled / pregnant)</option>
+          <option value="emergency">Emergency</option>
+        </select>
+      </div>
+    </div>
+    <fieldset class="form-group">
+      <legend>Accessibility needs</legend>
+      <div class="chips" id="f-needs"></div>
+    </fieldset>
+    <div class="form-group"><label for="f-notes">Notes <span class="hint">visible to clinical staff only</span></label><textarea id="f-notes" name="notes" rows="2" maxlength="1000"></textarea></div>
+    <p class="form-error" id="register-error" hidden></p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-outline" data-action="close-modal">Cancel</button>
+      <button type="submit" class="btn btn-primary">→ Issue queue number</button>
+    </div>
+  </form>
+</template>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

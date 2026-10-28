@@ -1,26 +1,28 @@
 {
-  "name": "sqhs-backend",
-  "version": "1.0.0",
-  "description": "Smart Queue Health System - Backend API",
+  "name": "sqhs",
+  "version": "2.0.0",
+  "description": "Smart Queue Health System - hospital queue management (staff console, kiosk, display board)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:init": "psql -U postgres -f database.sql"
+    "db:init": "node scripts/init-db.js",
+    "test": "node --test --test-concurrency=1 \"tests/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22"
   },
   "keywords": ["queue", "healthcare", "nodejs", "express"],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.10.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "socket.io": "^4.7.1",
-    "bcryptjs": "^2.4.3",
-    "jsonwebtoken": "^9.1.2",
-    "twilio": "^3.89.1",
-    "uuid": "^9.0.0"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.10.0",
+    "socket.io": "^4.7.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

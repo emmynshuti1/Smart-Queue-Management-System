@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SQHS Kiosk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231D9E75' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='Georgia, serif'%3ES%3C/text%3E%3C/svg%3E">
+</head>
+<body class="kiosk-body">
+<div class="toast" id="toast" role="status" aria-live="polite"><span class="toast-icon" id="toast-icon">✓</span><span id="toast-msg"></span></div>
+
+<main class="kiosk-wrapper">
+  <header class="kiosk-top">
+    <div class="logo-mark">S</div>
+    <div><div class="kiosk-facility" id="k-facility">Health Center</div><div class="hint" id="k-clock"></div></div>
+  </header>
+
+  <!-- Step 0: department -->
+  <section id="k-step-0" class="kiosk-step">
+    <div class="kiosk-header">
+      <h1>Welcome</h1>
+      <p>Choose the service you need to get your queue number</p>
+    </div>
+    <div class="step-indicator" aria-hidden="true"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
+    <div class="dept-grid" id="k-depts"></div>
+    <p class="kiosk-emergency-note">🚨 In a medical emergency, go directly to the reception desk or alert any staff member.</p>
+  </section>
+
+  <!-- Step 1: details -->
+  <section id="k-step-1" class="kiosk-step" hidden>
+    <div class="kiosk-header">
+      <h1>Your details</h1>
+      <p id="k-selected-dept"></p>
+    </div>
+    <div class="step-indicator" aria-hidden="true"><div class="step done"></div><div class="step active"></div><div class="step"></div></div>
+    <form class="card kiosk-form" id="k-form" novalidate>
+      <div class="form-group"><label for="k-name">Full name *</label><input id="k-name" name="full_name" maxlength="120" autocomplete="off" required></div>
+      <div class="form-group"><label for="k-phone" id="k-phone-label">Phone number (optional — for SMS updates)</label><input id="k-phone" name="phone" type="tel" inputmode="tel" autocomplete="off" placeholder="07XX XXX XXX"></div>
+      <div class="form-group">
+        <label>Which applies to you?</label>
+        <div class="choice-grid" id="k-priority">
+          <label class="choice"><input type="radio" name="priority" value="normal" checked><span>Regular visit</span></label>
+          <label class="choice"><input type="radio" name="priority" value="priority"><span>Elderly · disabled · pregnant</span></label>
+          <label class="choice choice-emergency"><input type="radio" name="priority" value="emergency"><span>🚨 Emergency</span></label>
+        </div>
+      </div>
+      <fieldset class="form-group">
+        <legend>Do you need assistance? (optional)</legend>
+        <div class="chips" id="k-needs"></div>
+      </fieldset>
+      <p class="form-error" id="k-error" hidden></p>
+      <button class="btn btn-primary btn-xl btn-block" type="submit">Get my number →</button>
+      <button class="btn btn-outline btn-xl btn-block" type="button" data-action="back">← Back</button>
+    </form>
+  </section>
+
+  <!-- Step 2: ticket -->
+  <section id="k-step-2" class="kiosk-step" hidden>
+    <div class="step-indicator" aria-hidden="true"><div class="step done"></div><div class="step done"></div><div class="step active"></div></div>
+    <div class="ticket-display" id="k-ticket">
+      <div class="t-label">Your queue number</div>
+      <div class="t-num" id="k-ticket-num">—</div>
+      <div class="t-dept" id="k-ticket-dept"></div>
+      <div class="t-est" id="k-ticket-est"></div>
+    </div>
+    <div id="k-ticket-msg"></div>
+    <button class="btn btn-outline btn-xl btn-block" data-action="print">🖨 Print ticket</button>
+    <button class="btn btn-primary btn-xl btn-block" data-action="reset">Done</button>
+    <p class="hint center" id="k-reset-note"></p>
+  </section>
+
+  <section id="k-disabled" class="kiosk-step" hidden>
+    <div class="kiosk-header"><h1>Please visit reception</h1><p>Self-registration is not available right now.</p></div>
+  </section>
+</main>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="kiosk.js"></script>
+</body>
+</html>

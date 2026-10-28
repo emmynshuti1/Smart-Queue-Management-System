@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SQHS Display Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%231D9E75' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='68' font-size='60' font-weight='bold' fill='%23fff' text-anchor='middle' font-family='Georgia, serif'%3ES%3C/text%3E%3C/svg%3E">
+</head>
+<body class="board-body">
+<div class="board-wrapper board-full">
+  <header class="board-header">
+    <div class="board-title" id="b-title">🏥 Queue Status</div>
+    <div class="board-time" id="b-clock">—</div>
+  </header>
+
+  <section class="board-hero" id="b-hero" aria-live="assertive">
+    <div class="bh-label">Now calling</div>
+    <div class="bh-ticket" id="b-hero-ticket">—</div>
+    <div class="bh-counter" id="b-hero-counter">Please wait for your number</div>
+  </section>
+
+  <section class="board-grid" id="b-cells"></section>
+
+  <footer class="board-footer">
+    <span>Your number and counter will appear here when it is your turn. Names are never shown.</span>
+    <span class="board-foot-right">
+      <button class="board-sound" id="b-sound" type="button">🔇 Enable sound</button>
+      <span id="b-status">Connecting…</span>
+    </span>
+  </footer>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script src="common.js"></script>
+<script src="display.js"></script>
+</body>
+</html>
